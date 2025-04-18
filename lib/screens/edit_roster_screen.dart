@@ -94,8 +94,8 @@ class EditRosterScreen extends StatelessWidget {
             ),
           );
         },
-        child: const Icon(Icons.add),
         tooltip: 'Add New Personnel',
+        child: const Icon(Icons.add),
       ),
     );
   }

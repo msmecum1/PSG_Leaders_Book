@@ -255,7 +255,9 @@ class _TaskOrgDiagramScreenState extends State<TaskOrgDiagramScreen> {
 
     // Add nodes and edges to graph
     nodes.values.forEach(graph.addNode);
-    edges.forEach((edge) => graph.addEdge(edge.source, edge.destination));
+    for (var edge in edges) {
+      graph.addEdge(edge.source, edge.destination);
+    }
 
     // Configure layout
     builder

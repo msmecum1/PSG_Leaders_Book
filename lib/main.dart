@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
-import 'screens/main_menu_screen.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:psg_leaders_book/screens/main_menu_screen.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
   runApp(const MyApp());
 }
 
@@ -13,21 +16,11 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'PSG Leader\'s Book',
       theme: ThemeData(
-        primarySwatch: Colors.green,
+        primarySwatch: Colors.grey,
         scaffoldBackgroundColor: Colors.grey[200],
         appBarTheme: const AppBarTheme(
-          backgroundColor: Colors.green,
+          backgroundColor: Colors.grey,
           foregroundColor: Colors.white,
-        ),
-        elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.green,
-            foregroundColor: Colors.white,
-          ),
-        ),
-        textTheme: const TextTheme(
-          bodyLarge: TextStyle(fontWeight: FontWeight.bold),
-          bodyMedium: TextStyle(color: Colors.black87),
         ),
       ),
       home: const MainMenuScreen(),

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "556596486577",
+    "project_id": "psgleadersbook",
+    "storage_bucket": "psgleadersbook.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:556596486577:android:4f2020993f65a228581d90",
+        "android_client_info": {
+          "package_name": "com.example.psg_leaders_book"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC1KG4Mr76FyCUOU_c9X1d_bi7Q4qBuMS0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

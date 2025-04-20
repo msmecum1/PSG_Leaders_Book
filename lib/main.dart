@@ -1,6 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:provider/provider.dart';
+import 'package:psg_leaders_book/providers/auth_provider.dart';
+import 'package:psg_leaders_book/providers/firestore_provider.dart';
+import 'package:psg_leaders_book/screens/login_screen.dart';
 import 'package:psg_leaders_book/screens/main_menu_screen.dart';
+import 'package:psg_leaders_book/screens/roster_report_screen.dart';
+import 'package:psg_leaders_book/screens/task_org_diagram_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -13,17 +19,42 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'PSG Leader\'s Book',
-      theme: ThemeData(
-        primarySwatch: Colors.grey,
-        scaffoldBackgroundColor: Colors.grey[200],
-        appBarTheme: const AppBarTheme(
-          backgroundColor: Colors.grey,
-          foregroundColor: Colors.white,
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider(create: (_) => FirestoreProvider()),
+      ],
+      child: MaterialApp(
+        title: 'PSG Leader\'s Book',
+        theme: ThemeData(
+          primarySwatch: Colors.grey,
+          scaffoldBackgroundColor: Colors.grey[200],
+          appBarTheme: const AppBarTheme(
+            backgroundColor: Colors.grey,
+            foregroundColor: Colors.white,
+          ),
         ),
+        initialRoute: '/',
+        routes: {
+          '/': (context) => const AuthWrapper(),
+          '/main': (context) => const MainMenuScreen(),
+          '/roster': (context) => const RosterReportScreen(),
+          '/taskOrg': (context) => const TaskOrgDiagramScreen(),
+        },
       ),
-      home: const MainMenuScreen(),
     );
+  }
+}
+
+class AuthWrapper extends StatelessWidget {
+  const AuthWrapper({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final authProvider = Provider.of<AuthProvider>(context);
+
+    return authProvider.user == null
+        ? const LoginScreen()
+        : const MainMenuScreen();
   }
 }

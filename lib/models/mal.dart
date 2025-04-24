@@ -1,34 +1,49 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class Mal {
   final String id;
-  final String itemName;
-  final String status;
-  final String dueDate;
-  final String assignedTo;
+  final String category;
+  final String description;
+  final String serialNumber;
+  final String personnelAssigned;
 
   Mal({
     required this.id,
-    required this.itemName,
-    required this.status,
-    required this.dueDate,
-    required this.assignedTo,
+    required this.category,
+    required this.description,
+    required this.serialNumber,
+    required this.personnelAssigned,
   });
 
-  factory Mal.fromFirestore(Map<String, dynamic> data, String id) {
+  // Convert Mal object to a Map for Firestore
+  Map<String, dynamic> toMap() {
+    return {
+      'category': category,
+      'description': description,
+      'serialNumber': serialNumber,
+      'personnelAssigned': personnelAssigned,
+    };
+  }
+
+  // Create Mal object from Firestore document snapshot
+  factory Mal.fromFirestore(DocumentSnapshot doc) {
+    Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
     return Mal(
-      id: id,
-      itemName: data['itemName'] ?? '',
-      status: data['status'] ?? '',
-      dueDate: data['dueDate'] ?? '',
-      assignedTo: data['assignedTo'] ?? '',
+      id: doc.id,
+      category: data['category'] ?? '',
+      description: data['description'] ?? '',
+      serialNumber: data['serialNumber'] ?? '',
+      personnelAssigned: data['personnelAssigned'] ?? '',
     );
   }
 
   Map<String, dynamic> toFirestore() {
+    // Update to include all fields
     return {
-      'itemName': itemName,
-      'status': status,
-      'dueDate': dueDate,
-      'assignedTo': assignedTo,
+      'category': category,
+      'description': description,
+      'serialNumber': serialNumber,
+      'personnelAssigned': personnelAssigned,
     };
   }
 }

@@ -1,6 +1,7 @@
 {
   "project_info": {
     "project_number": "556596486577",
+    "firebase_url": "https://psgleadersbook-default-rtdb.firebaseio.com",
     "project_id": "psgleadersbook",
     "storage_bucket": "psgleadersbook.firebasestorage.app"
   },

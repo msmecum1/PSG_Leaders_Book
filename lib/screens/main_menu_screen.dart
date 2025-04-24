@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'task_org_screen.dart';
 import 'mal_screen.dart';
 import 'personnel_info_screen.dart';
+import 'ground_tracker_screen.dart';
 
 class MainMenuScreen extends StatelessWidget {
   const MainMenuScreen({super.key});
@@ -46,6 +47,18 @@ class MainMenuScreen extends StatelessWidget {
                 );
               },
               child: const Text('Personnel Info'),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const GroundTrackerScreen(),
+                  ),
+                );
+              },
+              child: const Text('Ground Tracker'),
             ),
           ],
         ),

@@ -1,7 +1,12 @@
+// ignore_for_file: library_private_types_in_public_api
+
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:psg_leaders_book/models/mal.dart';
+import 'package:psg_leaders_book/providers/firestore_provider.dart';
 
 class MalFormScreen extends StatefulWidget {
-  final Map<String, dynamic>? item;
+  final Mal? item;
   final int? index;
 
   const MalFormScreen({super.key, this.item, this.index});
@@ -25,6 +30,7 @@ class _MalFormScreenState extends State<MalFormScreen> {
     'NVG',
     'Thermals',
     'Drones',
+    'Radio',
     'Miscellaneous',
   ];
 
@@ -32,27 +38,44 @@ class _MalFormScreenState extends State<MalFormScreen> {
   void initState() {
     super.initState();
     if (widget.item != null) {
-      _descriptionController.text = widget.item!['description'];
-      _serialNumberController.text = widget.item!['serialNumber'];
-      _personnelAssignedController.text = widget.item!['personnelAssigned'];
-      _category = widget.item!['category'];
+      _descriptionController.text = widget.item!.description;
+      _serialNumberController.text = widget.item!.serialNumber;
+      _personnelAssignedController.text = widget.item!.personnelAssigned;
+      _category = widget.item!.category;
     }
   }
 
   void _saveItem() {
     if (_formKey.currentState!.validate()) {
-      final newItem = {
-        'category': _category,
-        'description': _descriptionController.text,
-        'serialNumber': _serialNumberController.text,
-        'personnelAssigned': _personnelAssignedController.text,
-      };
+      final firestoreProvider = Provider.of<FirestoreProvider>(
+        context,
+        listen: false,
+      );
 
-      // TODO: Save to mock data or Firestore
+      final mal = Mal(
+        id:
+            widget.item?.id ??
+            '', // If it's a new item, the ID will be set by Firestore
+        category: _category!,
+        description: _descriptionController.text,
+        serialNumber: _serialNumberController.text,
+        personnelAssigned: _personnelAssignedController.text,
+      );
+
+      if (widget.item == null) {
+        // Add new item
+        firestoreProvider.addMal(mal);
+      } else {
+        // Update existing item
+        firestoreProvider.updateMal(mal);
+      }
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            widget.item == null ? 'Item added (mock)' : 'Item updated (mock)',
+            widget.item == null
+                ? 'Item added: ${mal.description}'
+                : 'Item updated: ${mal.description}',
           ),
         ),
       );
@@ -89,6 +112,7 @@ class _MalFormScreenState extends State<MalFormScreen> {
                 },
                 validator: (value) => value == null ? 'Required' : null,
               ),
+              const SizedBox(height: 10),
               TextFormField(
                 controller: _descriptionController,
                 decoration: const InputDecoration(labelText: 'Description'),

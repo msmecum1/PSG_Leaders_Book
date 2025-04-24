@@ -1,57 +1,51 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'mal_form_screen.dart';
+import 'package:psg_leaders_book/models/mal.dart';
+import 'package:psg_leaders_book/providers/firestore_provider.dart';
 
 class EditMalScreen extends StatelessWidget {
-  // Removed 'const' from constructor
-  EditMalScreen({super.key});
-
-  // Mock MAL data (shared with MalReportScreen)
-  final List<Map<String, dynamic>> malItems = [
-    {
-      'category': 'Weapon',
-      'description': 'M4 Carbine',
-      'serialNumber': 'W123456',
-      'personnelAssigned': 'John Doe',
-    },
-    {
-      'category': 'Laser',
-      'description': 'PEQ-15',
-      'serialNumber': 'L789012',
-      'personnelAssigned': 'Jane Smith',
-    },
-    {
-      'category': 'NVG',
-      'description': 'PVS-14',
-      'serialNumber': 'N345678',
-      'personnelAssigned': 'Mike Johnson',
-    },
-    {
-      'category': 'Drones',
-      'description': 'DJI Mavic Mini',
-      'serialNumber': 'D901234',
-      'personnelAssigned': 'Sarah Brown',
-    },
-  ];
+  const EditMalScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Edit MAL')),
-      body: ListView.builder(
-        itemCount: malItems.length,
-        itemBuilder: (context, index) {
-          final item = malItems[index];
-          return ListTile(
-            title: Text(item['description']),
-            subtitle: Text(
-              'Category: ${item['category']} | Assigned: ${item['personnelAssigned']}',
-            ),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => MalFormScreen(item: item, index: index),
+      body: StreamBuilder<List<Mal>>(
+        stream: Provider.of<FirestoreProvider>(context).getMalItems(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          if (snapshot.hasError) {
+            return Center(child: Text('Error: ${snapshot.error}'));
+          }
+
+          if (!snapshot.hasData || snapshot.data!.isEmpty) {
+            return const Center(child: Text('No MAL items found'));
+          }
+
+          final malItems = snapshot.data!;
+
+          return ListView.builder(
+            itemCount: malItems.length,
+            itemBuilder: (context, index) {
+              final item = malItems[index];
+              return ListTile(
+                title: Text(item.description),
+                subtitle: Text(
+                  'Category: ${item.category} |  Assigned: ${item.personnelAssigned}',
                 ),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder:
+                          (context) => MalFormScreen(item: item, index: index),
+                    ),
+                  );
+                },
               );
             },
           );

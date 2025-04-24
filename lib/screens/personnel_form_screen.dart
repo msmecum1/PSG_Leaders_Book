@@ -1,8 +1,13 @@
+// ignore_for_file: library_private_types_in_public_api
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
+import 'package:psg_leaders_book/models/personnel.dart';
+import 'package:psg_leaders_book/providers/firestore_provider.dart';
 
 class PersonnelFormScreen extends StatefulWidget {
-  final Map<String, dynamic>? person;
+  final Personnel? person;
   final int? index;
 
   const PersonnelFormScreen({super.key, this.person, this.index});
@@ -17,20 +22,31 @@ class _PersonnelFormScreenState extends State<PersonnelFormScreen> {
   final _lastNameController = TextEditingController();
   final _middleInitialController = TextEditingController();
   final _rankController = TextEditingController();
-  String? _position;
+  String? _role;
+  final _unitController = TextEditingController();
+  String? _reportsTo;
+
+  // Contact Info
+  final _emailController = TextEditingController();
+  final _secondaryEmailController = TextEditingController();
+  final _phoneNumberController = TextEditingController();
+
+  // Address
+  final _streetController = TextEditingController();
+  final _cityController = TextEditingController();
+  final _stateController = TextEditingController();
+  final _zipController = TextEditingController();
+
+  // Military Specific Fields
   DateTime? _dateOfBirth;
   DateTime? _dateOfRank;
   DateTime? _dateOfETS;
-  final _addressController = TextEditingController();
-  final _phoneNumberController = TextEditingController();
-  final _personalEmailController = TextEditingController();
-  final _militaryEmailController = TextEditingController();
   DateTime? _lastJumpDate;
   final _numberOfJumpsController = TextEditingController();
   DateTime? _lastNCOER;
 
-  // List of valid positions
-  final List<String> _positions = [
+  // List of valid roles (previously positions)
+  final List<String> _roles = [
     'PSG',
     'PL',
     'Platoon Medic',
@@ -70,26 +86,38 @@ class _PersonnelFormScreenState extends State<PersonnelFormScreen> {
     'Weapons Squad Anti-Tank Gunner',
   ];
 
+  // List for reportsTo dropdown (this would ideally be populated from your database)
+  final List<String> _reportingOptions = [
+    'person1', // Replace with actual IDs or use dynamic loading
+    'person2',
+    'person3',
+  ];
+
   @override
   void initState() {
     super.initState();
     if (widget.person != null) {
-      _firstNameController.text = widget.person!['firstName'];
-      _lastNameController.text = widget.person!['lastName'];
-      _middleInitialController.text = widget.person!['middleInitial'];
-      _rankController.text = widget.person!['rank'];
-      _position = widget.person!['position'];
-      _dateOfBirth = widget.person!['dateOfBirth'];
-      _dateOfRank = widget.person!['dateOfRank'];
-      _dateOfETS = widget.person!['dateOfETS'];
-      _addressController.text = widget.person!['address'];
-      _phoneNumberController.text = widget.person!['phoneNumber'];
-      _personalEmailController.text = widget.person!['personalEmail'];
-      _militaryEmailController.text = widget.person!['militaryEmail'];
-      _lastJumpDate = widget.person!['lastJumpDate'];
-      _numberOfJumpsController.text =
-          widget.person!['numberOfJumps'].toString();
-      _lastNCOER = widget.person!['lastNCOER'];
+      _firstNameController.text = widget.person!.firstName;
+      _lastNameController.text = widget.person!.lastName;
+      _middleInitialController.text = widget.person!.middleInitial;
+      _rankController.text = widget.person!.rank;
+      _role = widget.person!.role;
+      _unitController.text = widget.person!.unit;
+      _reportsTo = widget.person!.reportsTo;
+
+      // Contact info
+      _emailController.text = widget.person!.contactInfo['email'] ?? '';
+      _secondaryEmailController.text =
+          widget.person!.contactInfo['secondaryEmail'] ?? '';
+      _phoneNumberController.text = widget.person!.contactInfo['phone'] ?? '';
+
+      // Address
+      _streetController.text = widget.person!.address['street'] ?? '';
+      _cityController.text = widget.person!.address['city'] ?? '';
+      _stateController.text = widget.person!.address['state'] ?? '';
+      _zipController.text = widget.person!.address['zip'] ?? '';
+
+      // Future improvement: load military-specific fields from additional data
     }
   }
 
@@ -111,34 +139,82 @@ class _PersonnelFormScreenState extends State<PersonnelFormScreen> {
 
   void _savePersonnel() {
     if (_formKey.currentState!.validate()) {
-      final newPerson = {
-        'firstName': _firstNameController.text,
-        'lastName': _lastNameController.text,
-        'middleInitial': _middleInitialController.text,
-        'rank': _rankController.text,
-        'position': _position,
-        'dateOfBirth': _dateOfBirth ?? DateTime.now(),
-        'dateOfRank': _dateOfRank ?? DateTime.now(),
-        'dateOfETS': _dateOfETS ?? DateTime.now(),
-        'address': _addressController.text,
-        'phoneNumber': _phoneNumberController.text,
-        'personalEmail': _personalEmailController.text,
-        'militaryEmail': _militaryEmailController.text,
-        'lastJumpDate': _lastJumpDate ?? DateTime.now(),
-        'numberOfJumps': int.tryParse(_numberOfJumpsController.text) ?? 0,
-        'lastNCOER': _lastNCOER ?? DateTime.now(),
+      final firestoreProvider = Provider.of<FirestoreProvider>(
+        context,
+        listen: false,
+      );
+
+      // Create contact info map
+      final contactInfo = {
+        'email': _emailController.text,
+        'secondaryEmail': _secondaryEmailController.text,
+        'phone': _phoneNumberController.text,
       };
 
-      // TODO: Save to mock data or Firestore
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            widget.person == null
-                ? 'Personnel added (mock)'
-                : 'Personnel updated (mock)',
-          ),
-        ),
-      );
+      // Create address map
+      final address = {
+        'street': _streetController.text,
+        'city': _cityController.text,
+        'state': _stateController.text,
+        'zip': _zipController.text,
+      };
+
+      if (widget.person == null) {
+        // Create new personnel
+        final newPerson = Personnel(
+          id:
+              DateTime.now()
+                  .toString(), // You might want to use Firestore's auto-ID instead
+          firstName: _firstNameController.text,
+          lastName: _lastNameController.text,
+          middleInitial: _middleInitialController.text,
+          rank: _rankController.text,
+          role: _role ?? '',
+          unit: _unitController.text,
+          reportsTo: _reportsTo,
+          contactInfo: contactInfo,
+          address: address,
+          // Add the new military-specific fields
+          dateOfBirth: _dateOfBirth,
+          dateOfRank: _dateOfRank,
+          dateOfETS: _dateOfETS,
+          lastJumpDate: _lastJumpDate,
+          numberOfJumps: int.tryParse(_numberOfJumpsController.text),
+          lastNCOER: _lastNCOER,
+        );
+
+        firestoreProvider.addPersonnel(newPerson);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Personnel added successfully')),
+        );
+      } else {
+        // Update existing personnel
+        final updatedPerson = Personnel(
+          id: widget.person!.id,
+          firstName: _firstNameController.text,
+          lastName: _lastNameController.text,
+          middleInitial: _middleInitialController.text,
+          rank: _rankController.text,
+          role: _role ?? '',
+          unit: _unitController.text,
+          reportsTo: _reportsTo,
+          contactInfo: contactInfo,
+          address: address,
+          // Add the new military-specific fields here too
+          dateOfBirth: _dateOfBirth,
+          dateOfRank: _dateOfRank,
+          dateOfETS: _dateOfETS,
+          lastJumpDate: _lastJumpDate,
+          numberOfJumps: int.tryParse(_numberOfJumpsController.text),
+          lastNCOER: _lastNCOER,
+        );
+
+        firestoreProvider.updatePersonnel(updatedPerson);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Personnel updated successfully')),
+        );
+      }
+
       Navigator.pop(context);
     }
   }
@@ -157,7 +233,14 @@ class _PersonnelFormScreenState extends State<PersonnelFormScreen> {
           key: _formKey,
           child: SingleChildScrollView(
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Personal Information Section
+                const Text(
+                  'Personal Information',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 10),
                 TextFormField(
                   controller: _firstNameController,
                   decoration: const InputDecoration(labelText: 'First Name'),
@@ -174,40 +257,60 @@ class _PersonnelFormScreenState extends State<PersonnelFormScreen> {
                     labelText: 'Middle Initial',
                   ),
                 ),
+
+                const SizedBox(height: 20),
+
+                // Military Information Section
+                const Text(
+                  'Military Information',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 10),
                 TextFormField(
                   controller: _rankController,
                   decoration: const InputDecoration(labelText: 'Rank'),
                   validator: (value) => value!.isEmpty ? 'Required' : null,
                 ),
                 DropdownButtonFormField<String>(
-                  value: _position,
-                  decoration: const InputDecoration(labelText: 'Position'),
+                  value: _role,
+                  decoration: const InputDecoration(labelText: 'Role'),
                   items:
-                      _positions
+                      _roles
                           .map(
-                            (position) => DropdownMenuItem(
-                              value: position,
-                              child: Text(position),
+                            (role) => DropdownMenuItem(
+                              value: role,
+                              child: Text(role),
                             ),
                           )
                           .toList(),
                   onChanged: (value) {
-                    setState(() => _position = value);
+                    setState(() => _role = value);
                   },
                   validator: (value) => value == null ? 'Required' : null,
                 ),
-                ListTile(
-                  title: Text(
-                    _dateOfBirth == null
-                        ? 'Date of Birth'
-                        : 'DOB: ${dateFormat.format(_dateOfBirth!)}',
-                  ),
-                  trailing: const Icon(Icons.calendar_today),
-                  onTap:
-                      () => _selectDate(context, (date) {
-                        setState(() => _dateOfBirth = date);
-                      }, _dateOfBirth),
+                TextFormField(
+                  controller: _unitController,
+                  decoration: const InputDecoration(labelText: 'Unit'),
+                  validator: (value) => value!.isEmpty ? 'Required' : null,
                 ),
+                DropdownButtonFormField<String>(
+                  value: _reportsTo,
+                  decoration: const InputDecoration(labelText: 'Reports To'),
+                  items:
+                      _reportingOptions
+                          .map(
+                            (person) => DropdownMenuItem(
+                              value: person,
+                              child: Text(person),
+                            ),
+                          )
+                          .toList(),
+                  onChanged: (value) {
+                    setState(() => _reportsTo = value);
+                  },
+                ),
+
+                // Optional military dates that could be added to your model
                 ListTile(
                   title: Text(
                     _dateOfRank == null
@@ -232,65 +335,76 @@ class _PersonnelFormScreenState extends State<PersonnelFormScreen> {
                         setState(() => _dateOfETS = date);
                       }, _dateOfETS),
                 ),
-                TextFormField(
-                  controller: _addressController,
-                  decoration: const InputDecoration(labelText: 'Address'),
+
+                const SizedBox(height: 20),
+
+                // Contact Information Section
+                const Text(
+                  'Contact Information',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
+                const SizedBox(height: 10),
                 TextFormField(
                   controller: _phoneNumberController,
                   decoration: const InputDecoration(labelText: 'Phone Number'),
                   keyboardType: TextInputType.phone,
                 ),
                 TextFormField(
-                  controller: _personalEmailController,
+                  controller: _emailController,
+                  decoration: const InputDecoration(labelText: 'Email'),
+                  keyboardType: TextInputType.emailAddress,
+                  validator: (value) => value!.isEmpty ? 'Required' : null,
+                ),
+                TextFormField(
+                  controller: _secondaryEmailController,
                   decoration: const InputDecoration(
-                    labelText: 'Personal Email',
+                    labelText: 'Secondary Email',
                   ),
                   keyboardType: TextInputType.emailAddress,
                 ),
-                TextFormField(
-                  controller: _militaryEmailController,
-                  decoration: const InputDecoration(
-                    labelText: 'Military Email',
-                  ),
-                  keyboardType: TextInputType.emailAddress,
+
+                const SizedBox(height: 20),
+
+                // Address Section
+                const Text(
+                  'Address',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
-                ListTile(
-                  title: Text(
-                    _lastJumpDate == null
-                        ? 'Last Jump Date'
-                        : 'Last Jump: ${dateFormat.format(_lastJumpDate!)}',
-                  ),
-                  trailing: const Icon(Icons.calendar_today),
-                  onTap:
-                      () => _selectDate(context, (date) {
-                        setState(() => _lastJumpDate = date);
-                      }, _lastJumpDate),
+                const SizedBox(height: 10),
+                TextFormField(
+                  controller: _streetController,
+                  decoration: const InputDecoration(labelText: 'Street'),
                 ),
                 TextFormField(
-                  controller: _numberOfJumpsController,
-                  decoration: const InputDecoration(
-                    labelText: 'Number of Jumps',
-                  ),
-                  keyboardType: TextInputType.number,
+                  controller: _cityController,
+                  decoration: const InputDecoration(labelText: 'City'),
                 ),
-                ListTile(
-                  title: Text(
-                    _lastNCOER == null
-                        ? 'Last NCOER'
-                        : 'Last NCOER: ${dateFormat.format(_lastNCOER!)}',
+                TextFormField(
+                  controller: _stateController,
+                  decoration: const InputDecoration(labelText: 'State'),
+                ),
+                TextFormField(
+                  controller: _zipController,
+                  decoration: const InputDecoration(labelText: 'ZIP Code'),
+                ),
+
+                // Add other fields as needed for optional military data
+                const SizedBox(height: 30),
+                Center(
+                  child: ElevatedButton(
+                    onPressed: _savePersonnel,
+                    style: ElevatedButton.styleFrom(
+                      minimumSize: const Size(200, 50),
+                    ),
+                    child: Text(
+                      widget.person == null
+                          ? 'Add Personnel'
+                          : 'Update Personnel',
+                      style: const TextStyle(fontSize: 16),
+                    ),
                   ),
-                  trailing: const Icon(Icons.calendar_today),
-                  onTap:
-                      () => _selectDate(context, (date) {
-                        setState(() => _lastNCOER = date);
-                      }, _lastNCOER),
                 ),
                 const SizedBox(height: 20),
-                ElevatedButton(
-                  onPressed: _savePersonnel,
-                  child: Text(widget.person == null ? 'Add' : 'Update'),
-                ),
               ],
             ),
           ),

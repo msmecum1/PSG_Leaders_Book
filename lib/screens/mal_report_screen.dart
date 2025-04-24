@@ -2,47 +2,24 @@ import 'package:flutter/material.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
+import 'package:provider/provider.dart';
+import 'package:psg_leaders_book/models/mal.dart';
+import 'package:psg_leaders_book/providers/firestore_provider.dart';
 
 class MalReportScreen extends StatelessWidget {
-  // Removed 'const' from constructor
-  MalReportScreen({super.key});
-
-  // Mock MAL data
-  final List<Map<String, dynamic>> malItems = [
-    {
-      'category': 'Weapon',
-      'description': 'M4 Carbine',
-      'serialNumber': 'W123456',
-      'personnelAssigned': 'John Doe',
-    },
-    {
-      'category': 'Laser',
-      'description': 'PEQ-15',
-      'serialNumber': 'L789012',
-      'personnelAssigned': 'Jane Smith',
-    },
-    {
-      'category': 'NVG',
-      'description': 'PVS-14',
-      'serialNumber': 'N345678',
-      'personnelAssigned': 'Mike Johnson',
-    },
-    {
-      'category': 'Drones',
-      'description': 'DJI Mavic Mini',
-      'serialNumber': 'D901234',
-      'personnelAssigned': 'Sarah Brown',
-    },
-  ];
+  const MalReportScreen({super.key});
 
   // Function to generate and save PDF
-  Future<void> _generatePDF(BuildContext context) async {
+  Future<void> _generatePDF(BuildContext context, List<Mal> malItems) async {
+    // Get the ScaffoldMessengerState BEFORE the await
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+
     final pdf = pw.Document();
 
     pdf.addPage(
       pw.Page(
         build:
-            (pw.Context context) => pw.Table(
+            (pw.Context pdfContext) => pw.Table(
               border: pw.TableBorder.all(),
               children: [
                 // Header row
@@ -50,6 +27,7 @@ class MalReportScreen extends StatelessWidget {
                   children:
                       [
                             'Category',
+                            'Type',
                             'Description',
                             'Serial Number',
                             'Personnel Assigned',
@@ -69,10 +47,10 @@ class MalReportScreen extends StatelessWidget {
                   (item) => pw.TableRow(
                     children:
                         [
-                          item['category'],
-                          item['description'],
-                          item['serialNumber'],
-                          item['personnelAssigned'],
+                          item.category,
+                          item.description,
+                          item.serialNumber,
+                          item.personnelAssigned,
                         ].map((data) => pw.Text(data.toString())).toList(),
                   ),
                 ),
@@ -81,14 +59,16 @@ class MalReportScreen extends StatelessWidget {
       ),
     );
 
-    // Save PDF to device
+    // Async operations start here
     final dir = await getApplicationDocumentsDirectory();
     final file = File('${dir.path}/mal_report.pdf');
     await file.writeAsBytes(await pdf.save());
+    // Async operations end here
 
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text('PDF saved to ${file.path}')));
+    // Use the stored ScaffoldMessengerState AFTER the await
+    scaffoldMessenger.showSnackBar(
+      SnackBar(content: Text('PDF saved to ${file.path}')),
+    );
   }
 
   @override
@@ -97,36 +77,63 @@ class MalReportScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('MAL Report'),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.download),
-            onPressed: () => _generatePDF(context),
-            tooltip: 'Export to PDF',
+          StreamBuilder<List<Mal>>(
+            stream: Provider.of<FirestoreProvider>(context).getMalItems(),
+            builder: (context, snapshot) {
+              return IconButton(
+                icon: const Icon(Icons.download),
+                onPressed:
+                    snapshot.hasData
+                        ? () => _generatePDF(context, snapshot.data!)
+                        : null,
+                tooltip: 'Export to PDF',
+              );
+            },
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: DataTable(
-          columns: const [
-            DataColumn(label: Text('Category')),
-            DataColumn(label: Text('Description')),
-            DataColumn(label: Text('Serial Number')),
-            DataColumn(label: Text('Personnel Assigned')),
-          ],
-          rows:
-              malItems
-                  .map(
-                    (item) => DataRow(
-                      cells: [
-                        DataCell(Text(item['category'])),
-                        DataCell(Text(item['description'])),
-                        DataCell(Text(item['serialNumber'])),
-                        DataCell(Text(item['personnelAssigned'])),
-                      ],
-                    ),
-                  )
-                  .toList(),
-        ),
+      body: StreamBuilder<List<Mal>>(
+        stream: Provider.of<FirestoreProvider>(context).getMalItems(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          if (snapshot.hasError) {
+            return Center(child: Text('Error: ${snapshot.error}'));
+          }
+
+          if (!snapshot.hasData || snapshot.data!.isEmpty) {
+            return const Center(child: Text('No MAL items found'));
+          }
+
+          final malItems = snapshot.data!;
+
+          return SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: DataTable(
+              columns: const [
+                DataColumn(label: Text('Category')),
+                DataColumn(label: Text('Description')),
+                DataColumn(label: Text('Serial Number')),
+                DataColumn(label: Text('Personnel Assigned')),
+              ],
+              rows:
+                  malItems
+                      .map(
+                        (item) => DataRow(
+                          cells: [
+                            DataCell(Text(item.category)),
+                            DataCell(Text(item.description)),
+                            DataCell(Text(item.serialNumber)),
+                            DataCell(Text(item.personnelAssigned)),
+                          ],
+                        ),
+                      )
+                      .toList(),
+            ),
+          );
+        },
       ),
     );
   }

@@ -7,13 +7,17 @@ import 'package:psg_leaders_book/screens/login_screen.dart';
 import 'package:psg_leaders_book/screens/main_menu_screen.dart';
 import 'package:psg_leaders_book/screens/roster_report_screen.dart';
 import 'package:psg_leaders_book/screens/task_org_diagram_screen.dart';
+import 'firebase_options.dart'; // Add this import
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform, // Use generated options
+  );
   runApp(const MyApp());
 }
 
+// Rest of the file remains unchanged for now
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 

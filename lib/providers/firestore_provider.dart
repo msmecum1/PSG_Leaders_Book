@@ -47,8 +47,7 @@ class FirestoreProvider with ChangeNotifier {
         .collection('users')
         .doc(userId)
         .collection('personnel')
-        .doc(personnel.id)
-        .set(personnel.toFirestore());
+        .add(personnel.toFirestore());
     notifyListeners();
   }
 

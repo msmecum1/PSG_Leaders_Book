@@ -1,3 +1,4 @@
+// models/personnel.dart
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class Personnel {
@@ -7,7 +8,7 @@ class Personnel {
   final String lastName;
   final String rank;
   final String role;
-  final String unit;
+  final String squadTeam; // Changed from unit to squadTeam
   final String? reportsTo;
   final Map<String, String> contactInfo;
   final Map<String, String> address;
@@ -27,7 +28,7 @@ class Personnel {
     required this.lastName,
     required this.rank,
     required this.role,
-    required this.unit,
+    required this.squadTeam, // Updated
     this.reportsTo,
     required this.contactInfo,
     required this.address,
@@ -47,7 +48,7 @@ class Personnel {
       lastName: data['lastName'] ?? '',
       rank: data['rank'] ?? '',
       role: data['role'] ?? '',
-      unit: data['unit'] ?? '',
+      squadTeam: data['squadTeam'] ?? '', // Updated
       reportsTo: data['reportsTo'],
       contactInfo: Map<String, String>.from(data['contactInfo'] ?? {}),
       address: Map<String, String>.from(data['address'] ?? {}),
@@ -82,7 +83,7 @@ class Personnel {
       'lastName': lastName,
       'rank': rank,
       'role': role,
-      'unit': unit,
+      'squadTeam': squadTeam, // Updated
       'reportsTo': reportsTo,
       'contactInfo': contactInfo,
       'address': address,
@@ -102,7 +103,7 @@ class Personnel {
       'middleInitial': middleInitial,
       'rank': rank,
       'role': role,
-      'unit': unit,
+      'squadTeam': squadTeam, // Updated
       'reportsTo': reportsTo,
       'contactInfo': contactInfo,
       'address': address,
@@ -123,7 +124,7 @@ class Personnel {
       lastName: map['lastName'] ?? '',
       rank: map['rank'] ?? '',
       role: map['role'] ?? '',
-      unit: map['unit'] ?? '',
+      squadTeam: map['squadTeam'] ?? '', // Updated
       reportsTo: map['reportsTo'],
       contactInfo: Map<String, String>.from(map['contactInfo'] ?? {}),
       address: Map<String, String>.from(map['address'] ?? {}),

@@ -187,7 +187,9 @@ class _GroundTrackerScreenState extends State<GroundTrackerScreen> {
                         title: Text(
                           '${person.rank} ${person.lastName}, ${person.firstName} ${person.middleInitial}',
                         ),
-                        subtitle: Text(person.unit),
+                        subtitle: Text(
+                          person.squadTeam,
+                        ), // Updated to show squadTeam
                         trailing:
                             _isHistoricalView
                                 ? Chip(

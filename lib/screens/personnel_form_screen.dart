@@ -1,3 +1,4 @@
+// personnel_form_screen.dart
 // ignore_for_file: library_private_types_in_public_api
 
 import 'package:flutter/material.dart';
@@ -5,6 +6,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:psg_leaders_book/models/personnel.dart';
 import 'package:psg_leaders_book/providers/firestore_provider.dart';
+import 'package:country_state_city_picker/country_state_city_picker.dart';
 
 class PersonnelFormScreen extends StatefulWidget {
   final Personnel? person;
@@ -21,9 +23,10 @@ class _PersonnelFormScreenState extends State<PersonnelFormScreen> {
   final _firstNameController = TextEditingController();
   final _lastNameController = TextEditingController();
   final _middleInitialController = TextEditingController();
+  String? _rank;
   final _rankController = TextEditingController();
   String? _role;
-  final _unitController = TextEditingController();
+  String? _squadTeam;
   String? _reportsTo;
 
   // Contact Info
@@ -33,8 +36,9 @@ class _PersonnelFormScreenState extends State<PersonnelFormScreen> {
 
   // Address
   final _streetController = TextEditingController();
-  final _cityController = TextEditingController();
-  final _stateController = TextEditingController();
+  String? _city; // Use String? for city
+  String? _state; // Use String? for state
+  String? _country; // Add country
   final _zipController = TextEditingController();
 
   // Military Specific Fields
@@ -45,7 +49,7 @@ class _PersonnelFormScreenState extends State<PersonnelFormScreen> {
   final _numberOfJumpsController = TextEditingController();
   DateTime? _lastNCOER;
 
-  // List of valid roles (previously positions)
+  // List of valid roles
   final List<String> _roles = [
     'PSG',
     'PL',
@@ -86,12 +90,24 @@ class _PersonnelFormScreenState extends State<PersonnelFormScreen> {
     'Weapons Squad Anti-Tank Gunner',
   ];
 
-  // List for reportsTo dropdown (this would ideally be populated from your database)
-  final List<String> _reportingOptions = [
-    'person1', // Replace with actual IDs or use dynamic loading
-    'person2',
-    'person3',
+  // New list for squad/team dropdown
+  final List<String> _squadTeamOptions = [
+    '1st',
+    '1st Alpha',
+    '1st Bravo',
+    '2nd',
+    '2nd Alpha',
+    '2nd Bravo',
+    '3rd',
+    '3rd Alpha',
+    '3rd Bravo',
+    'PSG',
+    'PL',
+    'Support',
   ];
+
+  // List for reportsTo dropdown (will be populated dynamically)
+  List<String> _reportingOptions = [];
 
   @override
   void initState() {
@@ -100,9 +116,10 @@ class _PersonnelFormScreenState extends State<PersonnelFormScreen> {
       _firstNameController.text = widget.person!.firstName;
       _lastNameController.text = widget.person!.lastName;
       _middleInitialController.text = widget.person!.middleInitial;
+      _rank = widget.person!.rank;
       _rankController.text = widget.person!.rank;
       _role = widget.person!.role;
-      _unitController.text = widget.person!.unit;
+      _squadTeam = widget.person!.squadTeam;
       _reportsTo = widget.person!.reportsTo;
 
       // Contact info
@@ -113,12 +130,37 @@ class _PersonnelFormScreenState extends State<PersonnelFormScreen> {
 
       // Address
       _streetController.text = widget.person!.address['street'] ?? '';
-      _cityController.text = widget.person!.address['city'] ?? '';
-      _stateController.text = widget.person!.address['state'] ?? '';
+      _country = widget.person!.address['country'];
+      _state = widget.person!.address['state'];
+      _city = widget.person!.address['city'];
       _zipController.text = widget.person!.address['zip'] ?? '';
-
-      // Future improvement: load military-specific fields from additional data
     }
+
+    // Load personnel for the Reports To dropdown
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadReportingOptions();
+    });
+  }
+
+  Future<void> _loadReportingOptions() async {
+    final firestoreProvider = Provider.of<FirestoreProvider>(
+      context,
+      listen: false,
+    );
+    final personnelStream = firestoreProvider.getPersonnel();
+
+    personnelStream.listen((personnelList) {
+      List<String> names = [];
+      for (var person in personnelList) {
+        // Exclude the current person being edited from the list
+        if (widget.person == null || person.id != widget.person!.id) {
+          names.add(person.fullName);
+        }
+      }
+      setState(() {
+        _reportingOptions = names;
+      });
+    });
   }
 
   Future<void> _selectDate(
@@ -154,23 +196,22 @@ class _PersonnelFormScreenState extends State<PersonnelFormScreen> {
       // Create address map
       final address = {
         'street': _streetController.text,
-        'city': _cityController.text,
-        'state': _stateController.text,
+        'country': _country ?? '',
+        'state': _state ?? '',
+        'city': _city ?? '',
         'zip': _zipController.text,
       };
 
       if (widget.person == null) {
         // Create new personnel
         final newPerson = Personnel(
-          id:
-              DateTime.now()
-                  .toString(), // You might want to use Firestore's auto-ID instead
+          id: DateTime.now().millisecondsSinceEpoch.toString(),
           firstName: _firstNameController.text,
           lastName: _lastNameController.text,
           middleInitial: _middleInitialController.text,
-          rank: _rankController.text,
+          rank: _rank ?? '',
           role: _role ?? '',
-          unit: _unitController.text,
+          squadTeam: _squadTeam ?? '',
           reportsTo: _reportsTo,
           contactInfo: contactInfo,
           address: address,
@@ -194,9 +235,9 @@ class _PersonnelFormScreenState extends State<PersonnelFormScreen> {
           firstName: _firstNameController.text,
           lastName: _lastNameController.text,
           middleInitial: _middleInitialController.text,
-          rank: _rankController.text,
+          rank: _rank ?? '',
           role: _role ?? '',
-          unit: _unitController.text,
+          squadTeam: _squadTeam ?? '',
           reportsTo: _reportsTo,
           contactInfo: contactInfo,
           address: address,
@@ -266,10 +307,34 @@ class _PersonnelFormScreenState extends State<PersonnelFormScreen> {
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 10),
-                TextFormField(
-                  controller: _rankController,
+                DropdownButtonFormField<String>(
+                  value: _rank,
                   decoration: const InputDecoration(labelText: 'Rank'),
-                  validator: (value) => value!.isEmpty ? 'Required' : null,
+                  items:
+                      <String>[
+                        'Private',
+                        'Private First Class',
+                        'Specialist',
+                        'Corporal',
+                        'Sergeant',
+                        'Staff Sergeant',
+                        'Sergeant First Class',
+                        '2Lt',
+                        'First Lieutenant',
+                        'Cadet',
+                      ].map((String value) {
+                        return DropdownMenuItem<String>(
+                          value: value,
+                          child: Text(value),
+                        );
+                      }).toList(),
+                  onChanged: (String? newValue) {
+                    setState(() {
+                      _rank = newValue;
+                      _rankController.text = newValue!;
+                    });
+                  },
+                  validator: (value) => value == null ? 'Required' : null,
                 ),
                 DropdownButtonFormField<String>(
                   value: _role,
@@ -288,10 +353,22 @@ class _PersonnelFormScreenState extends State<PersonnelFormScreen> {
                   },
                   validator: (value) => value == null ? 'Required' : null,
                 ),
-                TextFormField(
-                  controller: _unitController,
-                  decoration: const InputDecoration(labelText: 'Unit'),
-                  validator: (value) => value!.isEmpty ? 'Required' : null,
+                DropdownButtonFormField<String>(
+                  value: _squadTeam,
+                  decoration: const InputDecoration(labelText: 'Squad/Team'),
+                  items:
+                      _squadTeamOptions
+                          .map(
+                            (squadTeam) => DropdownMenuItem(
+                              value: squadTeam,
+                              child: Text(squadTeam),
+                            ),
+                          )
+                          .toList(),
+                  onChanged: (value) {
+                    setState(() => _squadTeam = value);
+                  },
+                  validator: (value) => value == null ? 'Required' : null,
                 ),
                 DropdownButtonFormField<String>(
                   value: _reportsTo,
@@ -299,9 +376,9 @@ class _PersonnelFormScreenState extends State<PersonnelFormScreen> {
                   items:
                       _reportingOptions
                           .map(
-                            (person) => DropdownMenuItem(
-                              value: person,
-                              child: Text(person),
+                            (personName) => DropdownMenuItem(
+                              value: personName,
+                              child: Text(personName),
                             ),
                           )
                           .toList(),
@@ -375,13 +452,33 @@ class _PersonnelFormScreenState extends State<PersonnelFormScreen> {
                   controller: _streetController,
                   decoration: const InputDecoration(labelText: 'Street'),
                 ),
-                TextFormField(
-                  controller: _cityController,
-                  decoration: const InputDecoration(labelText: 'City'),
-                ),
-                TextFormField(
-                  controller: _stateController,
-                  decoration: const InputDecoration(labelText: 'State'),
+                SelectState(
+                  // <-- Change this line
+                  // Use the widget from the library
+                  // country: _country, // SelectState might not have 'country' directly
+                  // state: _state,     // SelectState might not have 'state' directly
+                  // city: _city,       // SelectState might not have 'city' directly
+                  onCountryChanged: (value) {
+                    setState(() {
+                      _country = value;
+                      // Reset state and city when country changes
+                      _state = null;
+                      _city = null;
+                    });
+                  },
+                  onStateChanged: (value) {
+                    setState(() {
+                      _state = value;
+                      // Reset city when state changes
+                      _city = null;
+                    });
+                  },
+                  onCityChanged: (value) {
+                    setState(() {
+                      _city = value;
+                    });
+                  },
+                  // You might need to adjust styling or pass controllers if the API differs
                 ),
                 TextFormField(
                   controller: _zipController,

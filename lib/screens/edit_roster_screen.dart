@@ -1,5 +1,5 @@
+// edit_roster_screen.dart
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart'; // Import Firestore
 import 'package:provider/provider.dart'; // Import Provider
 import 'package:psg_leaders_book/providers/firestore_provider.dart'; // Import your provider
 import 'package:psg_leaders_book/models/personnel.dart'; // Import your Personnel model
@@ -66,8 +66,9 @@ class EditRosterScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('Edit Personnel Roster')),
       // Use StreamBuilder to listen to Firestore updates via the provider
-      body: StreamBuilder<QuerySnapshot>(
-        stream: firestoreProvider.fetchPersonnelStream(), // Use Provider method
+      body: StreamBuilder<List<Personnel>>(
+        // Changed to StreamBuilder<List<Personnel>>
+        stream: firestoreProvider.getPersonnel(), // Using getPersonnel() here
         builder: (context, snapshot) {
           // Handle loading state
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -79,18 +80,12 @@ class EditRosterScreen extends StatelessWidget {
             return const Center(child: Text('Error loading data.'));
           }
           // Handle no data state
-          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+          if (!snapshot.hasData || snapshot.data!.isEmpty) {
             return const Center(child: Text('No personnel found.'));
           }
 
           // Map Firestore documents to Personnel objects
-          final personnelList =
-              snapshot.data!.docs.map((doc) {
-                return Personnel.fromMap(
-                  doc.data() as Map<String, dynamic>,
-                  doc.id,
-                );
-              }).toList();
+          final personnelList = snapshot.data!; // Directly using the list
 
           // Build the list view with fetched data
           return ListView.builder(
@@ -99,7 +94,9 @@ class EditRosterScreen extends StatelessWidget {
               final person = personnelList[index];
               return ListTile(
                 title: Text('${person.firstName} ${person.lastName}'),
-                subtitle: Text('Rank: ${person.rank} | Role: ${person.role}'),
+                subtitle: Text(
+                  'Rank: ${person.rank} | Squad/Team: ${person.squadTeam}',
+                ), // Updated subtitle
                 onTap: () {
                   Navigator.push(
                     context,

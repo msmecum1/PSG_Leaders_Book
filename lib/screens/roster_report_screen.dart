@@ -36,39 +36,13 @@ class RosterReportScreen extends StatelessWidget {
                 subtitle: Text(
                   '${personnel.rank} - ${personnel.role}\nEmail: ${personnel.contactInfo['email']}',
                 ),
-                trailing: Text(personnel.unit),
+                trailing: Text(
+                  personnel.squadTeam,
+                ), // Updated to show squadTeam
               );
             },
           );
         },
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          firestoreProvider.addPersonnel(
-            Personnel(
-              id: DateTime.now().toString(),
-              firstName: 'Jane',
-              middleInitial: 'C',
-              lastName: 'Roe',
-              rank: 'CPL',
-              role: '1st Squad Alpha Team Leader',
-              unit: 'Bravo Company',
-              reportsTo: 'person1',
-              contactInfo: {
-                'email': 'jane.roe@example.com',
-                'secondaryEmail': 'jane.roe2@example.com',
-                'phone': '987-654-3210',
-              },
-              address: {
-                'street': '456 Oak St',
-                'city': 'Othertown',
-                'state': 'NY',
-                'zip': '67890',
-              },
-            ),
-          );
-        },
-        child: const Icon(Icons.add),
       ),
     );
   }

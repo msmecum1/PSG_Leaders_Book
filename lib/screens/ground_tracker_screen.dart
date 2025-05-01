@@ -161,10 +161,9 @@ class _GroundTrackerScreenState extends State<GroundTrackerScreen> {
 
                 final personnelList = snapshot.data!;
 
-                // Initialize status for any new personnel
                 for (var person in personnelList) {
                   if (!_attendanceStatus.containsKey(person.id)) {
-                    _attendanceStatus[person.id] = 'Present'; // Default status
+                    _attendanceStatus[person.id] = 'Present';
                   }
                 }
 
@@ -187,9 +186,7 @@ class _GroundTrackerScreenState extends State<GroundTrackerScreen> {
                         title: Text(
                           '${person.rank} ${person.lastName}, ${person.firstName} ${person.middleInitial}',
                         ),
-                        subtitle: Text(
-                          person.squadTeam,
-                        ), // Updated to show squadTeam
+                        subtitle: Text(person.squadTeam),
                         trailing:
                             _isHistoricalView
                                 ? Chip(
@@ -198,7 +195,7 @@ class _GroundTrackerScreenState extends State<GroundTrackerScreen> {
                                   ),
                                   backgroundColor: _getStatusColor(
                                     _attendanceStatus[person.id] ?? 'Present',
-                                  ).withOpacity(0.3),
+                                  ).withAlpha(77),
                                 )
                                 : DropdownButton<String>(
                                   value:
@@ -231,7 +228,6 @@ class _GroundTrackerScreenState extends State<GroundTrackerScreen> {
           ),
         ],
       ),
-      // Show save button only when not viewing historical data
       floatingActionButton:
           _isHistoricalView
               ? null
@@ -245,7 +241,6 @@ class _GroundTrackerScreenState extends State<GroundTrackerScreen> {
     );
   }
 
-  // Show dialog to select from previous attendance dates
   void _showDateSelectionDialog() {
     showDialog(
       context: context,
@@ -320,7 +315,6 @@ class _GroundTrackerScreenState extends State<GroundTrackerScreen> {
     );
   }
 
-  // Helper method to get color based on status
   Color _getStatusColor(String status) {
     switch (status) {
       case 'Present':

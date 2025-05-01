@@ -8,6 +8,9 @@ class LoginScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    // Store Navigator and ScaffoldMessenger before the async gap
+    final navigator = Navigator.of(context);
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
 
     return Scaffold(
       appBar: AppBar(title: const Text('PSG Leader\'s Book')),
@@ -22,11 +25,18 @@ class LoginScreen extends StatelessWidget {
             const SizedBox(height: 20),
             ElevatedButton.icon(
               onPressed: () async {
+                // Async operation starts here
                 final success = await authProvider.signInWithGoogle();
+                // Async operation ends here
+
+                // Use the stored variables after the await
                 if (success) {
-                  Navigator.pushReplacementNamed(context, '/main');
+                  navigator.pushReplacementNamed(
+                    '/main',
+                  ); // Use stored navigator
                 } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  scaffoldMessenger.showSnackBar(
+                    // Use stored scaffoldMessenger
                     const SnackBar(content: Text('Sign-in failed')),
                   );
                 }

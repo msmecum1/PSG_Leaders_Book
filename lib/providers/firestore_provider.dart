@@ -3,11 +3,23 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:psg_leaders_book/models/personnel.dart';
 import 'package:psg_leaders_book/models/mal.dart';
+import 'package:logger/logger.dart';
 
 class FirestoreProvider with ChangeNotifier {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   String? get userId => FirebaseAuth.instance.currentUser?.uid;
   final String _collectionPath = 'personnel';
+
+  final logger = Logger(
+    printer: PrettyPrinter(
+      methodCount: 1,
+      errorMethodCount: 8,
+      lineLength: 120,
+      colors: true,
+      printEmojis: true,
+      dateTimeFormat: DateTimeFormat.none,
+    ),
+  );
 
   final List<Personnel> _personnelList = [];
 
@@ -75,8 +87,8 @@ class FirestoreProvider with ChangeNotifier {
         _personnelList[index] = person;
         notifyListeners();
       }
-    } catch (e) {
-      print('Error updating personnel: $e');
+    } catch (e, stackTrace) {
+      logger.e('Error updating personnel', error: e, stackTrace: stackTrace);
     }
   }
 
@@ -158,8 +170,8 @@ class FirestoreProvider with ChangeNotifier {
           .collection('personnel')
           .doc(id)
           .delete();
-    } catch (e) {
-      print('Error deleting personnel: $e');
+    } catch (e, stackTrace) {
+      logger.e('Error deleting personnel', error: e, stackTrace: stackTrace);
     }
   }
 }

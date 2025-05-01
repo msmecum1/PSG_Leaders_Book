@@ -1,12 +1,25 @@
 // edit_roster_screen.dart
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart'; // Import Provider
-import 'package:psg_leaders_book/providers/firestore_provider.dart'; // Import your provider
-import 'package:psg_leaders_book/models/personnel.dart'; // Import your Personnel model
+import 'package:provider/provider.dart';
+import 'package:psg_leaders_book/providers/firestore_provider.dart';
+import 'package:psg_leaders_book/models/personnel.dart';
 import 'personnel_form_screen.dart';
+import 'package:logger/logger.dart'; // Import logger
 
 class EditRosterScreen extends StatelessWidget {
-  const EditRosterScreen({super.key});
+  EditRosterScreen({super.key});
+
+  // Create a logger instance for this screen
+  final logger = Logger(
+    printer: PrettyPrinter(
+      methodCount: 1,
+      errorMethodCount: 5,
+      lineLength: 80,
+      colors: true,
+      printEmojis: true,
+      dateTimeFormat: DateTimeFormat.none,
+    ),
+  );
 
   // Helper method for showing delete confirmation
   Future<void> _showDeleteConfirmation(
@@ -61,14 +74,13 @@ class EditRosterScreen extends StatelessWidget {
     final firestoreProvider = Provider.of<FirestoreProvider>(
       context,
       listen: false,
-    ); // Use listen: false if only calling methods like delete
+    );
 
     return Scaffold(
       appBar: AppBar(title: const Text('Edit Personnel Roster')),
       // Use StreamBuilder to listen to Firestore updates via the provider
       body: StreamBuilder<List<Personnel>>(
-        // Changed to StreamBuilder<List<Personnel>>
-        stream: firestoreProvider.getPersonnel(), // Using getPersonnel() here
+        stream: firestoreProvider.getPersonnel(),
         builder: (context, snapshot) {
           // Handle loading state
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -76,7 +88,12 @@ class EditRosterScreen extends StatelessWidget {
           }
           // Handle error state
           if (snapshot.hasError) {
-            print('Firestore Error: ${snapshot.error}'); // Log the error
+            // Replace print with logger.e
+            logger.e(
+              'Firestore Error loading personnel stream',
+              error: snapshot.error,
+              stackTrace: snapshot.stackTrace, // Include stack trace
+            );
             return const Center(child: Text('Error loading data.'));
           }
           // Handle no data state
@@ -85,7 +102,7 @@ class EditRosterScreen extends StatelessWidget {
           }
 
           // Map Firestore documents to Personnel objects
-          final personnelList = snapshot.data!; // Directly using the list
+          final personnelList = snapshot.data!;
 
           // Build the list view with fetched data
           return ListView.builder(
@@ -96,7 +113,7 @@ class EditRosterScreen extends StatelessWidget {
                 title: Text('${person.firstName} ${person.lastName}'),
                 subtitle: Text(
                   'Rank: ${person.rank} | Squad/Team: ${person.squadTeam}',
-                ), // Updated subtitle
+                ),
                 onTap: () {
                   Navigator.push(
                     context,

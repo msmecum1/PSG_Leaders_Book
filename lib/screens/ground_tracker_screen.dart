@@ -24,6 +24,7 @@ class _GroundTrackerScreenState extends State<GroundTrackerScreen> {
 
   // Indicate if we're looking at historical data
   bool _isHistoricalView = false;
+  bool _isEditingHistorical = false;
 
   @override
   void initState() {
@@ -88,6 +89,15 @@ class _GroundTrackerScreenState extends State<GroundTrackerScreen> {
               _showDateSelectionDialog();
             },
           ),
+          if (_isHistoricalView) // Conditionally show the edit button
+            IconButton(
+              icon: Icon(_isEditingHistorical ? Icons.close : Icons.edit),
+              onPressed: () {
+                setState(() {
+                  _isEditingHistorical = !_isEditingHistorical;
+                });
+              },
+            ),
         ],
       ),
       body: Column(
@@ -99,7 +109,9 @@ class _GroundTrackerScreenState extends State<GroundTrackerScreen> {
               padding: const EdgeInsets.all(8.0),
               width: double.infinity,
               child: Text(
-                'Viewing historical data for ${DateFormat('MMMM d, yyyy').format(_selectedDate)}',
+                _isEditingHistorical
+                    ? 'Editing historical data for ${DateFormat('MMMM d, yyyy').format(_selectedDate)}'
+                    : 'Viewing historical data for ${DateFormat('MMMM d, yyyy').format(_selectedDate)}',
                 style: const TextStyle(fontWeight: FontWeight.bold),
                 textAlign: TextAlign.center,
               ),
@@ -161,9 +173,12 @@ class _GroundTrackerScreenState extends State<GroundTrackerScreen> {
 
                 final personnelList = snapshot.data!;
 
-                for (var person in personnelList) {
-                  if (!_attendanceStatus.containsKey(person.id)) {
-                    _attendanceStatus[person.id] = 'Present';
+                // Initialize status for new personnel if needed (only when not historical)
+                if (!_isHistoricalView) {
+                  for (var person in personnelList) {
+                    if (!_attendanceStatus.containsKey(person.id)) {
+                      _attendanceStatus[person.id] = 'Present';
+                    }
                   }
                 }
 
@@ -181,22 +196,51 @@ class _GroundTrackerScreenState extends State<GroundTrackerScreen> {
                           backgroundColor: _getStatusColor(
                             _attendanceStatus[person.id] ?? 'Present',
                           ),
-                          child: Text(person.rank[0]),
+                          child: Text(
+                            person.rank.isNotEmpty ? person.rank[0] : '?',
+                          ),
                         ),
                         title: Text(
-                          '${person.rank} ${person.lastName}, ${person.firstName} ${person.middleInitial}',
+                          '${person.rank} ${person.lastName}, ${person.firstName} ${person.middleInitial}'
+                              .trim(),
                         ),
                         subtitle: Text(person.squadTeam),
                         trailing:
                             _isHistoricalView
-                                ? Chip(
-                                  label: Text(
-                                    _attendanceStatus[person.id] ?? 'N/A',
-                                  ),
-                                  backgroundColor: _getStatusColor(
-                                    _attendanceStatus[person.id] ?? 'Present',
-                                  ).withAlpha(77),
-                                )
+                                ? _isEditingHistorical
+                                    ? DropdownButton<String>(
+                                      value:
+                                          _attendanceStatus[person.id] ??
+                                          'Present',
+                                      onChanged: (String? newValue) {
+                                        if (newValue != null) {
+                                          setState(() {
+                                            _attendanceStatus[person.id] =
+                                                newValue;
+                                          });
+                                        }
+                                      },
+                                      items:
+                                          _statusOptions
+                                              .map<DropdownMenuItem<String>>((
+                                                String value,
+                                              ) {
+                                                return DropdownMenuItem<String>(
+                                                  value: value,
+                                                  child: Text(value),
+                                                );
+                                              })
+                                              .toList(),
+                                    )
+                                    : Chip(
+                                      label: Text(
+                                        _attendanceStatus[person.id] ?? 'N/A',
+                                      ),
+                                      backgroundColor: _getStatusColor(
+                                        _attendanceStatus[person.id] ??
+                                            'Present',
+                                      ).withAlpha(77),
+                                    )
                                 : DropdownButton<String>(
                                   value:
                                       _attendanceStatus[person.id] ?? 'Present',
@@ -229,15 +273,31 @@ class _GroundTrackerScreenState extends State<GroundTrackerScreen> {
         ],
       ),
       floatingActionButton:
-          _isHistoricalView
-              ? null
-              : FloatingActionButton(
+          !_isHistoricalView || _isEditingHistorical
+              ? FloatingActionButton(
                 onPressed: () {
-                  _saveAttendanceData();
+                  final scaffoldMessenger = ScaffoldMessenger.of(context);
+
+                  if (!_isHistoricalView) {
+                    _saveAttendanceData(scaffoldMessenger);
+                  } else if (_isEditingHistorical) {
+                    _saveEditedAttendanceData(scaffoldMessenger);
+                    setState(() {
+                      _isEditingHistorical = false;
+                    });
+                  }
                 },
-                tooltip: 'Save Attendance',
-                child: const Icon(Icons.save),
-              ),
+                tooltip:
+                    _isHistoricalView && _isEditingHistorical
+                        ? 'Save Edits'
+                        : 'Save Attendance',
+                child: Icon(
+                  _isHistoricalView && _isEditingHistorical
+                      ? Icons.check
+                      : Icons.save,
+                ),
+              )
+              : null,
     );
   }
 
@@ -328,18 +388,16 @@ class _GroundTrackerScreenState extends State<GroundTrackerScreen> {
     }
   }
 
-  // Method to save attendance data to Firestore
-  void _saveAttendanceData() {
-    // Reference to Firebase
+  // Method to save attendance data to Firestore (for current day)
+  void _saveAttendanceData(ScaffoldMessengerState scaffoldMessenger) {
     final firestoreProvider = Provider.of<FirestoreProvider>(
       context,
       listen: false,
     );
 
-    // Save the data with the formatted date
     firestoreProvider.saveAttendanceData(_formattedDate, _attendanceStatus);
 
-    ScaffoldMessenger.of(context).showSnackBar(
+    scaffoldMessenger.showSnackBar(
       SnackBar(
         content: Text(
           'Attendance saved for ${DateFormat('MMM dd, yyyy').format(_selectedDate)}',
@@ -348,7 +406,28 @@ class _GroundTrackerScreenState extends State<GroundTrackerScreen> {
     );
 
     setState(() {
-      _isHistoricalView = true; // Now we're viewing what we just saved
+      _isHistoricalView = true;
+      _isEditingHistorical = false;
     });
+  }
+
+  // Method to save edited attendance data to Firestore
+  void _saveEditedAttendanceData(ScaffoldMessengerState scaffoldMessenger) {
+    if (_isHistoricalView) {
+      final firestoreProvider = Provider.of<FirestoreProvider>(
+        context,
+        listen: false,
+      );
+
+      firestoreProvider.saveAttendanceData(_formattedDate, _attendanceStatus);
+
+      scaffoldMessenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            'Attendance updated for ${DateFormat('MMM dd, yyyy').format(_selectedDate)}',
+          ),
+        ),
+      );
+    }
   }
 }

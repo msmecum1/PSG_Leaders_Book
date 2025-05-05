@@ -21,7 +21,7 @@ android {
 
     defaultConfig {
         applicationId = "com.example.psg_leaders_book"
-        minSdk = 23 // Fixed for firebase_auth compatibility
+        minSdk = 21
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName

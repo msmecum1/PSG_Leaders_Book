@@ -1,14 +1,15 @@
-// models/personnel.dart
+// lib\models\personnel.dart
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class Personnel {
   final String id;
   final String firstName;
-  final String middleInitial;
-  final String lastName;
-  final String rank;
-  final String role;
-  final String squadTeam; // Changed from unit to squadTeam
+  final String middleInitial; // Required
+  final String lastName; // Required
+  final String rank; // Required
+  final String role; // Required
+  final String squadTeam;
   final String? reportsTo;
   final Map<String, String> contactInfo;
   final Map<String, String> address;
@@ -21,6 +22,11 @@ class Personnel {
   final int? numberOfJumps;
   final DateTime? lastNCOER;
 
+  // Flagging Fields
+  final bool isFlagged;
+  final String? flagNotes;
+  final DateTime? flagDate; // Date the flag was set or last updated
+
   Personnel({
     required this.id,
     required this.firstName,
@@ -28,7 +34,7 @@ class Personnel {
     required this.lastName,
     required this.rank,
     required this.role,
-    required this.squadTeam, // Updated
+    required this.squadTeam,
     this.reportsTo,
     required this.contactInfo,
     required this.address,
@@ -38,6 +44,9 @@ class Personnel {
     this.lastJumpDate,
     this.numberOfJumps,
     this.lastNCOER,
+    this.isFlagged = false, // Default to not flagged
+    this.flagNotes,
+    this.flagDate,
   });
 
   factory Personnel.fromFirestore(Map<String, dynamic> data, String id) {
@@ -48,7 +57,7 @@ class Personnel {
       lastName: data['lastName'] ?? '',
       rank: data['rank'] ?? '',
       role: data['role'] ?? '',
-      squadTeam: data['squadTeam'] ?? '', // Updated
+      squadTeam: data['squadTeam'] ?? '',
       reportsTo: data['reportsTo'],
       contactInfo: Map<String, String>.from(data['contactInfo'] ?? {}),
       address: Map<String, String>.from(data['address'] ?? {}),
@@ -73,6 +82,13 @@ class Personnel {
           data['lastNCOER'] != null
               ? (data['lastNCOER'] as Timestamp).toDate()
               : null,
+      // Flagging fields
+      isFlagged: data['isFlagged'] ?? false,
+      flagNotes: data['flagNotes'],
+      flagDate:
+          data['flagDate'] != null
+              ? (data['flagDate'] as Timestamp).toDate()
+              : null,
     );
   }
 
@@ -83,7 +99,7 @@ class Personnel {
       'lastName': lastName,
       'rank': rank,
       'role': role,
-      'squadTeam': squadTeam, // Updated
+      'squadTeam': squadTeam,
       'reportsTo': reportsTo,
       'contactInfo': contactInfo,
       'address': address,
@@ -93,17 +109,23 @@ class Personnel {
       'lastJumpDate': lastJumpDate,
       'numberOfJumps': numberOfJumps,
       'lastNCOER': lastNCOER,
+      // Flagging fields
+      'isFlagged': isFlagged,
+      'flagNotes': flagNotes,
+      'flagDate': flagDate,
     };
   }
 
+  // Update toMap and fromMap as well if you use them for other purposes
   Map<String, dynamic> toMap() {
     return {
+      'id': id, // It's common to include id in toMap as well
       'firstName': firstName,
-      'lastName': lastName,
-      'middleInitial': middleInitial,
-      'rank': rank,
-      'role': role,
-      'squadTeam': squadTeam, // Updated
+      'middleInitial': middleInitial, // Added
+      'lastName': lastName, // Added
+      'rank': rank, // Added
+      'role': role, // Added
+      'squadTeam': squadTeam,
       'reportsTo': reportsTo,
       'contactInfo': contactInfo,
       'address': address,
@@ -113,18 +135,22 @@ class Personnel {
       'lastJumpDate': lastJumpDate?.toIso8601String(),
       'numberOfJumps': numberOfJumps,
       'lastNCOER': lastNCOER?.toIso8601String(),
+      // Flagging fields
+      'isFlagged': isFlagged,
+      'flagNotes': flagNotes,
+      'flagDate': flagDate?.toIso8601String(),
     };
   }
 
   factory Personnel.fromMap(Map<String, dynamic> map, String documentId) {
     return Personnel(
-      id: documentId,
+      id: documentId, // Use documentId if 'id' is not in map, or map['id']
       firstName: map['firstName'] ?? '',
-      middleInitial: map['middleInitial'] ?? '',
-      lastName: map['lastName'] ?? '',
-      rank: map['rank'] ?? '',
-      role: map['role'] ?? '',
-      squadTeam: map['squadTeam'] ?? '', // Updated
+      middleInitial: map['middleInitial'] ?? '', // Added
+      lastName: map['lastName'] ?? '', // Added
+      rank: map['rank'] ?? '', // Added
+      role: map['role'] ?? '', // Added
+      squadTeam: map['squadTeam'] ?? '',
       reportsTo: map['reportsTo'],
       contactInfo: Map<String, String>.from(map['contactInfo'] ?? {}),
       address: Map<String, String>.from(map['address'] ?? {}),
@@ -145,6 +171,11 @@ class Personnel {
       numberOfJumps: map['numberOfJumps'],
       lastNCOER:
           map['lastNCOER'] != null ? DateTime.tryParse(map['lastNCOER']) : null,
+      // Flagging fields
+      isFlagged: map['isFlagged'] ?? false,
+      flagNotes: map['flagNotes'],
+      flagDate:
+          map['flagDate'] != null ? DateTime.tryParse(map['flagDate']) : null,
     );
   }
 

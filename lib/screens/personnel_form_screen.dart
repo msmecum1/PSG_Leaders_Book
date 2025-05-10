@@ -29,6 +29,11 @@ class _PersonnelFormScreenState extends State<PersonnelFormScreen> {
   String? _squadTeam;
   String? _reportsTo;
 
+  // Flagging functionality
+  bool _isFlagged = false;
+  final _flagNotesController = TextEditingController();
+  // DateTime? _flagDate; // The flagDate will be set during save
+
   // Contact Info
   final _emailController = TextEditingController();
   final _secondaryEmailController = TextEditingController();
@@ -49,8 +54,9 @@ class _PersonnelFormScreenState extends State<PersonnelFormScreen> {
   final _numberOfJumpsController = TextEditingController();
   DateTime? _lastNCOER;
 
-  // List of valid roles
+  // List of valid roles - ADD "Excess"
   final List<String> _roles = [
+    'Excess', // Added "Excess" role
     'PSG',
     'PL',
     'Platoon Medic',
@@ -90,8 +96,9 @@ class _PersonnelFormScreenState extends State<PersonnelFormScreen> {
     'Weapons Squad Anti-Tank Gunner',
   ];
 
-  // New list for squad/team dropdown
+  // New list for squad/team dropdown - ADD an "Excess Pool" or similar
   final List<String> _squadTeamOptions = [
+    'Excess Pool', // Added for unassigned/excess personnel
     '1st',
     '1st Alpha',
     '1st Bravo',
@@ -122,6 +129,11 @@ class _PersonnelFormScreenState extends State<PersonnelFormScreen> {
       _squadTeam = widget.person!.squadTeam;
       _reportsTo = widget.person!.reportsTo;
 
+      // Initialize flagging fields
+      _isFlagged = widget.person!.isFlagged;
+      _flagNotesController.text = widget.person!.flagNotes ?? '';
+      // _flagDate = widget.person!.flagDate; // Store if needed for display, but set on save
+
       // Contact info
       _emailController.text = widget.person!.contactInfo['email'] ?? '';
       _secondaryEmailController.text =
@@ -134,6 +146,21 @@ class _PersonnelFormScreenState extends State<PersonnelFormScreen> {
       _state = widget.person!.address['state'];
       _city = widget.person!.address['city'];
       _zipController.text = widget.person!.address['zip'] ?? '';
+
+      // Military specific fields
+      _dateOfBirth = widget.person!.dateOfBirth;
+      _dateOfRank = widget.person!.dateOfRank;
+      _dateOfETS = widget.person!.dateOfETS;
+      _lastJumpDate = widget.person!.lastJumpDate;
+      _numberOfJumpsController.text =
+          widget.person!.numberOfJumps?.toString() ?? '';
+      _lastNCOER = widget.person!.lastNCOER;
+    } else {
+      // Defaults for new personnel
+      _isFlagged = false;
+      // Optionally, you could pre-select 'Excess' for new personnel if desired.
+      // _role = 'Excess';
+      // _squadTeam = 'Excess Pool';
     }
 
     // Load personnel for the Reports To dropdown
@@ -157,9 +184,12 @@ class _PersonnelFormScreenState extends State<PersonnelFormScreen> {
           names.add(person.fullName);
         }
       }
-      setState(() {
-        _reportingOptions = names;
-      });
+      if (mounted) {
+        // Check if the widget is still in the tree
+        setState(() {
+          _reportingOptions = names;
+        });
+      }
     });
   }
 
@@ -202,6 +232,36 @@ class _PersonnelFormScreenState extends State<PersonnelFormScreen> {
         'zip': _zipController.text,
       };
 
+      // Logic for assigning "Excess" role and squad/team
+      String finalRole = _role ?? 'Excess';
+      if (finalRole.trim().isEmpty) {
+        finalRole = 'Excess';
+      }
+
+      String finalSquadTeam = _squadTeam ?? 'Excess Pool';
+      if (finalSquadTeam.trim().isEmpty) {
+        finalSquadTeam = 'Excess Pool';
+      }
+
+      // Handle flagging data
+      String? currentFlagNotes =
+          _isFlagged ? _flagNotesController.text.trim() : null;
+      DateTime? newFlagDate;
+
+      if (_isFlagged) {
+        // For new flags, set the date to now
+        // For existing flags, preserve the original date if the person was already flagged
+        if (widget.person == null || !widget.person!.isFlagged) {
+          newFlagDate = DateTime.now(); // New flag
+        } else {
+          newFlagDate = widget.person!.flagDate; // Preserve existing flag date
+        }
+      } else {
+        // If not flagged, clear any existing notes and date
+        currentFlagNotes = null;
+        newFlagDate = null;
+      }
+
       if (widget.person == null) {
         // Create new personnel
         final newPerson = Personnel(
@@ -209,19 +269,23 @@ class _PersonnelFormScreenState extends State<PersonnelFormScreen> {
           firstName: _firstNameController.text,
           lastName: _lastNameController.text,
           middleInitial: _middleInitialController.text,
-          rank: _rank ?? '',
-          role: _role ?? '',
-          squadTeam: _squadTeam ?? '',
+          rank: _rank ?? '', // Rank validation should ensure it's not null
+          role: finalRole, // Use determined role
+          squadTeam: finalSquadTeam, // Use determined squad/team
           reportsTo: _reportsTo,
           contactInfo: contactInfo,
           address: address,
-          // Add the new military-specific fields
+          // Military-specific fields
           dateOfBirth: _dateOfBirth,
           dateOfRank: _dateOfRank,
           dateOfETS: _dateOfETS,
           lastJumpDate: _lastJumpDate,
           numberOfJumps: int.tryParse(_numberOfJumpsController.text),
           lastNCOER: _lastNCOER,
+          // Add flag information
+          isFlagged: _isFlagged,
+          flagNotes: currentFlagNotes,
+          flagDate: newFlagDate,
         );
 
         firestoreProvider.addPersonnel(newPerson);
@@ -235,19 +299,25 @@ class _PersonnelFormScreenState extends State<PersonnelFormScreen> {
           firstName: _firstNameController.text,
           lastName: _lastNameController.text,
           middleInitial: _middleInitialController.text,
-          rank: _rank ?? '',
-          role: _role ?? '',
-          squadTeam: _squadTeam ?? '',
+          rank: _rank ?? '', // Rank validation should ensure it's not null
+          role: finalRole, // Use determined role
+          squadTeam: finalSquadTeam, // Use determined squad/team
           reportsTo: _reportsTo,
           contactInfo: contactInfo,
           address: address,
-          // Add the new military-specific fields here too
-          dateOfBirth: _dateOfBirth,
-          dateOfRank: _dateOfRank,
-          dateOfETS: _dateOfETS,
-          lastJumpDate: _lastJumpDate,
-          numberOfJumps: int.tryParse(_numberOfJumpsController.text),
-          lastNCOER: _lastNCOER,
+          // Preserve existing dates/values if new ones aren't provided
+          dateOfBirth: _dateOfBirth ?? widget.person!.dateOfBirth,
+          dateOfRank: _dateOfRank ?? widget.person!.dateOfRank,
+          dateOfETS: _dateOfETS ?? widget.person!.dateOfETS,
+          lastJumpDate: _lastJumpDate ?? widget.person!.lastJumpDate,
+          numberOfJumps:
+              int.tryParse(_numberOfJumpsController.text) ??
+              widget.person!.numberOfJumps,
+          lastNCOER: _lastNCOER ?? widget.person!.lastNCOER,
+          // Add flag information
+          isFlagged: _isFlagged,
+          flagNotes: currentFlagNotes,
+          flagDate: newFlagDate,
         );
 
         firestoreProvider.updatePersonnel(updatedPerson);
@@ -258,6 +328,26 @@ class _PersonnelFormScreenState extends State<PersonnelFormScreen> {
 
       Navigator.pop(context);
     }
+  }
+
+  @override
+  void dispose() {
+    // Dispose existing controllers
+    _firstNameController.dispose();
+    _lastNameController.dispose();
+    _middleInitialController.dispose();
+    _rankController.dispose();
+    _emailController.dispose();
+    _secondaryEmailController.dispose();
+    _phoneNumberController.dispose();
+    _streetController.dispose();
+    _zipController.dispose();
+    _numberOfJumpsController.dispose();
+
+    // Dispose flag controller
+    _flagNotesController.dispose();
+
+    super.dispose();
   }
 
   @override
@@ -331,7 +421,9 @@ class _PersonnelFormScreenState extends State<PersonnelFormScreen> {
                   onChanged: (String? newValue) {
                     setState(() {
                       _rank = newValue;
-                      _rankController.text = newValue!;
+                      if (newValue != null) {
+                        _rankController.text = newValue;
+                      }
                     });
                   },
                   validator: (value) => value == null ? 'Required' : null,
@@ -351,7 +443,10 @@ class _PersonnelFormScreenState extends State<PersonnelFormScreen> {
                   onChanged: (value) {
                     setState(() => _role = value);
                   },
-                  validator: (value) => value == null ? 'Required' : null,
+                  // If a role is not strictly required to save, you can remove this validator
+                  // or adjust the logic. For now, assuming a role (even 'Excess') should be chosen.
+                  validator:
+                      (value) => value == null ? 'Role is Required' : null,
                 ),
                 DropdownButtonFormField<String>(
                   value: _squadTeam,
@@ -368,7 +463,10 @@ class _PersonnelFormScreenState extends State<PersonnelFormScreen> {
                   onChanged: (value) {
                     setState(() => _squadTeam = value);
                   },
-                  validator: (value) => value == null ? 'Required' : null,
+                  // Similar to Role, assuming a squad/team (even 'Excess Pool') is chosen.
+                  validator:
+                      (value) =>
+                          value == null ? 'Squad/Team is Required' : null,
                 ),
                 DropdownButtonFormField<String>(
                   value: _reportsTo,
@@ -385,6 +483,7 @@ class _PersonnelFormScreenState extends State<PersonnelFormScreen> {
                   onChanged: (value) {
                     setState(() => _reportsTo = value);
                   },
+                  // This field can be optional, so no validator or a lenient one
                 ),
 
                 // Optional military dates that could be added to your model
@@ -412,7 +511,103 @@ class _PersonnelFormScreenState extends State<PersonnelFormScreen> {
                         setState(() => _dateOfETS = date);
                       }, _dateOfETS),
                 ),
+                ListTile(
+                  title: Text(
+                    _dateOfBirth == null
+                        ? 'Date of Birth'
+                        : 'DOB: ${dateFormat.format(_dateOfBirth!)}',
+                  ),
+                  trailing: const Icon(Icons.calendar_today),
+                  onTap:
+                      () => _selectDate(context, (date) {
+                        setState(() => _dateOfBirth = date);
+                      }, _dateOfBirth),
+                ),
+                TextFormField(
+                  controller: _numberOfJumpsController,
+                  decoration: const InputDecoration(
+                    labelText: 'Number of Jumps',
+                  ),
+                  keyboardType: TextInputType.number,
+                ),
+                ListTile(
+                  title: Text(
+                    _lastJumpDate == null
+                        ? 'Last Jump Date'
+                        : 'Last Jump: ${dateFormat.format(_lastJumpDate!)}',
+                  ),
+                  trailing: const Icon(Icons.calendar_today),
+                  onTap:
+                      () => _selectDate(context, (date) {
+                        setState(() => _lastJumpDate = date);
+                      }, _lastJumpDate),
+                ),
+                ListTile(
+                  title: Text(
+                    _lastNCOER == null
+                        ? 'Last NCOER Date'
+                        : 'Last NCOER: ${dateFormat.format(_lastNCOER!)}',
+                  ),
+                  trailing: const Icon(Icons.calendar_today),
+                  onTap:
+                      () => _selectDate(context, (date) {
+                        setState(() => _lastNCOER = date);
+                      }, _lastNCOER),
+                ),
 
+                const SizedBox(height: 20),
+
+                // Flag Information Section
+                const Text(
+                  'Flag Information',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 10),
+                SwitchListTile(
+                  title: const Text('Is Soldier Flagged?'),
+                  value: _isFlagged,
+                  onChanged: (bool value) {
+                    setState(() {
+                      _isFlagged = value;
+                      // If unflagged, you might want to clear notes immediately,
+                      // or let the save logic handle it.
+                      // if (!_isFlagged) {
+                      //   _flagNotesController.clear();
+                      // }
+                    });
+                  },
+                ),
+                if (_isFlagged) // Only show notes field if flagged
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16.0,
+                    ), // Indent if desired
+                    child: TextFormField(
+                      controller: _flagNotesController,
+                      decoration: const InputDecoration(
+                        labelText: 'Flag Notes',
+                        hintText: 'Enter reason and details for the flag...',
+                      ),
+                      maxLines: 3, // Allow multiple lines for notes
+                      // Optional: Add a validator if notes are required when flagged
+                      // validator: (value) {
+                      //   if (_isFlagged && (value == null || value.trim().isEmpty)) {
+                      //     return 'Notes are required if the soldier is flagged.';
+                      //   }
+                      //   return null;
+                      // },
+                    ),
+                  ),
+                // Display current flag date if editing and it exists
+                if (widget.person?.isFlagged == true &&
+                    widget.person?.flagDate != null)
+                  Padding(
+                    padding: const EdgeInsets.only(left: 16.0, top: 8.0),
+                    child: Text(
+                      'Flagged on: ${DateFormat('MMM dd, yyyy HH:mm').format(widget.person!.flagDate!)}',
+                      style: TextStyle(color: Colors.grey[700], fontSize: 12),
+                    ),
+                  ),
                 const SizedBox(height: 20),
 
                 // Contact Information Section

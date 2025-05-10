@@ -110,24 +110,52 @@ class EditRosterScreen extends StatelessWidget {
             itemBuilder: (context, index) {
               final person = personnelList[index];
               return ListTile(
+                // Add flag icon if person is flagged
+                leading:
+                    person.isFlagged
+                        ? const Icon(Icons.flag, color: Colors.red)
+                        : CircleAvatar(
+                          child: Text(person.firstName[0] + person.lastName[0]),
+                        ),
                 title: Text('${person.firstName} ${person.lastName}'),
                 subtitle: Text(
-                  'Rank: ${person.rank} | Squad/Team: ${person.squadTeam}',
+                  'Rank: ${person.rank} | Squad/Team: ${person.squadTeam}${person.isFlagged ? " (Flagged)" : ""}',
+                ),
+                // Replace single icon with row of icons
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.edit),
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder:
+                                (context) => PersonnelFormScreen(
+                                  person: person,
+                                  index: index,
+                                ),
+                          ),
+                        );
+                      },
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.delete, color: Colors.red),
+                      onPressed: () {
+                        // Use the _showDeleteConfirmation method
+                        _showDeleteConfirmation(
+                          context,
+                          firestoreProvider,
+                          person,
+                        );
+                      },
+                    ),
+                  ],
                 ),
                 onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => PersonnelFormScreen(person: person),
-                    ),
-                  );
+                  // Show details or another action
                 },
-                trailing: IconButton(
-                  icon: const Icon(Icons.delete, color: Colors.red),
-                  onPressed: () {
-                    _showDeleteConfirmation(context, firestoreProvider, person);
-                  },
-                ),
               );
             },
           );
